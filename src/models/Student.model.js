@@ -56,21 +56,43 @@ const studentSchema = new mongoose.Schema(
         "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
       ],
     },
-    class: {
+    primary_number: {
       type: String,
-      required: [true, "Class is required"],
-      trim: true,
+      required: [true, "Primary number is required"],
+      match: [/^[0-9]{10,15}$/, "Please provide a valid phone number"],
+    },
+    secondary_number: {
+      type: String,
+      match: [/^[0-9]{10,15}$/, "Please provide a valid phone number"],
+    },
+    class: {
+      class_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Class",
+        required: [true, "Class ID is required"],
+      },
+      class_name: {
+        type: String,
+        required: [true, "Class name is required"],
+        trim: true,
+      },
     },
     grade: {
-      type: String,
-      required: [true, "Grade is required"],
-      trim: true,
+      grade_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Grade",
+        required: [true, "Grade ID is required"],
+      },
+      grade_name: {
+        type: String,
+        required: [true, "Grade name is required"],
+        trim: true,
+      },
     },
     roll_number: {
       type: String,
       required: [true, "Roll number is required"],
       trim: true,
-      unique: true,
     },
     isActive: {
       type: Boolean,
@@ -81,5 +103,8 @@ const studentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Compound index to ensure roll_number is unique within the same class
+studentSchema.index({ roll_number: 1, "class.class_name": 1 }, { unique: true });
 
 module.exports = mongoose.model("Student", studentSchema);
