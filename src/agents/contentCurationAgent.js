@@ -46,7 +46,7 @@ class ContentCurationAgent {
           }
         }
       },
-      Math: {
+      Mathematics: {
         channels: [
           'Khan Academy',
           '3Blue1Brown',
