@@ -17,6 +17,11 @@ const classSchema = new mongoose.Schema(
       ref: "Grade",
       required: [true, "Grade ID is required"],
     },
+    grade_name: {
+      type: String,
+      required: [true, "Grade name is required"],
+      trim: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
