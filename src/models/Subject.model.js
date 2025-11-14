@@ -17,16 +17,20 @@ const subjectSchema = new mongoose.Schema(
       required: [true, "Grade name is required"],
       trim: true,
     },
-    class_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Class",
-      required: [true, "Class ID is required"],
-    },
-    class_name: {
-      type: String,
-      required: [true, "Class name is required"],
-      trim: true,
-    },
+    classes: [
+      {
+        class_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Class",
+          required: true,
+        },
+        class_name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

@@ -34,35 +34,52 @@ const teacherSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       match: [/^[0-9]{10,15}$/, "Please provide a valid phone number"],
     },
-    classes: {
-      type: [String],
-      required: [true, "At least one class is required"],
-      validate: {
-        validator: function (v) {
-          return v && v.length > 0;
+    classes: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
         },
-        message: "Classes array cannot be empty",
-      },
-    },
-    grades: {
-      type: [String],
-      required: [true, "At least one grade is required"],
-      validate: {
-        validator: function (v) {
-          return v && v.length > 0;
+        class_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Class",
+          required: true,
         },
-        message: "Grades array cannot be empty",
       },
-    },
-    subject: {
-      type: [String],
-      required: [true, "At least one subject is required"],
-      validate: {
-        validator: function (v) {
-          return v && v.length > 0;
+    ],
+    grades: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
         },
-        message: "Subject array cannot be empty",
+        grade_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Grade",
+          required: true,
+        },
       },
+    ],
+    subjects: [
+      {
+        name: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        grade_ids: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Grade",
+          },
+        ],
+      },
+    ],
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   {
