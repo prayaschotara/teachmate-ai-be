@@ -34,6 +34,7 @@ const chapterSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        collection: "chapters",
     }
 );
 

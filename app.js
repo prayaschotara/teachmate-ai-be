@@ -12,6 +12,7 @@ const teacherRouter = require("./src/routes/teacher.router");
 const gradeRouter = require("./src/routes/grade.router");
 const classRouter = require("./src/routes/class.router");
 const subjectRouter = require("./src/routes/subject.router");
+const chapterRouter = require("./src/routes/chapter.router");
 
 const app = express();
 mongoose
@@ -26,11 +27,12 @@ app.use(cors());
 app.use(morgan("dev"));
 const port = process.env.PORT || 3000;
 
-app.use("/api", testRouter);
 app.use("/api/teacher", teacherRouter);
 app.use("/api/grade", gradeRouter);
 app.use("/api/class", classRouter);
 app.use("/api/subject", subjectRouter);
+app.use("/api/chapter", chapterRouter);
+app.use("/api/test", testRouter);
 app.use(errorHandler);
 
 app.get("/", (req, res) => {
