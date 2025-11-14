@@ -49,7 +49,6 @@ const registerTeacher = async (teacherData) => {
   let subjectsArray = [];
   if (subject_names && Array.isArray(subject_names)) {
     for (const subjectName of subject_names) {
-      // Find all grades for this subject name
       const gradeIds = gradesArray.map((g) => g.grade_id);
       subjectsArray.push({
         name: subjectName,
@@ -76,6 +75,147 @@ const registerTeacher = async (teacherData) => {
   return teacherObject;
 };
 
+const getAllTeachers = async () => {
+  const teachers = await Teacher.find()
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+  return teachers;
+};
+
+const getTeacherById = async (id) => {
+  const teacher = await Teacher.findById(id)
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+  if (!teacher) {
+    const error = new Error("Teacher not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  return teacher;
+};
+
+const updateTeacher = async (id, teacherData) => {
+  const { password, class_names, grade_names, subject_names, ...restData } = teacherData;
+
+  // Hash password if provided
+  if (password) {
+    restData.password = await bcrypt.hash(password, 10);
+  }
+
+  // Process classes if provided
+  if (class_names && Array.isArray(class_names)) {
+    let classesArray = [];
+    for (const className of class_names) {
+      const classDoc = await Class.findOne({ class_name: className });
+      if (classDoc) {
+        classesArray.push({
+          name: className,
+          class_id: classDoc._id,
+        });
+      }
+    }
+    restData.classes = classesArray;
+  }
+
+  // Process grades if provided
+  if (grade_names && Array.isArray(grade_names)) {
+    let gradesArray = [];
+    for (const gradeName of grade_names) {
+      const grade = await Grade.findOne({ grade_name: gradeName });
+      if (grade) {
+        gradesArray.push({
+          name: gradeName,
+          grade_id: grade._id,
+        });
+      }
+    }
+    restData.grades = gradesArray;
+
+    // Process subjects if provided
+    if (subject_names && Array.isArray(subject_names)) {
+      let subjectsArray = [];
+      for (const subjectName of subject_names) {
+        const gradeIds = gradesArray.map((g) => g.grade_id);
+        subjectsArray.push({
+          name: subjectName,
+          grade_ids: gradeIds,
+        });
+      }
+      restData.subjects = subjectsArray;
+    }
+  }
+
+  const teacher = await Teacher.findByIdAndUpdate(id, restData, {
+    new: true,
+    runValidators: true,
+  })
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+
+  if (!teacher) {
+    const error = new Error("Teacher not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  return teacher;
+};
+
+const deleteTeacher = async (id) => {
+  const teacher = await Teacher.findByIdAndDelete(id);
+  if (!teacher) {
+    const error = new Error("Teacher not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  return teacher;
+};
+
+const getTeachersBySubject = async (subjectName) => {
+  const teachers = await Teacher.find({
+    "subjects.name": { $regex: new RegExp(`^${subjectName}$`, "i") },
+  })
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+  return teachers;
+};
+
+const getTeachersByGrade = async (gradeName) => {
+  const teachers = await Teacher.find({
+    "grades.name": { $regex: new RegExp(`^${gradeName}$`, "i") },
+  })
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+  return teachers;
+};
+
+const getTeachersByClass = async (className) => {
+  const teachers = await Teacher.find({
+    "classes.name": { $regex: new RegExp(`^${className}$`, "i") },
+  })
+    .populate("classes.class_id")
+    .populate("grades.grade_id")
+    .populate("subjects.grade_ids")
+    .select("-password");
+  return teachers;
+};
+
 module.exports = {
   registerTeacher,
+  getAllTeachers,
+  getTeacherById,
+  updateTeacher,
+  deleteTeacher,
+  getTeachersBySubject,
+  getTeachersByGrade,
+  getTeachersByClass,
 };
