@@ -1,4 +1,9 @@
 node_modules
 .vscode
 .env
+src/scripts
+data
+src/subject
+src/chunk.js
+package.json
 package-lock.json
