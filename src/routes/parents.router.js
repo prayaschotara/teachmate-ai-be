@@ -8,12 +8,16 @@ const {
   deleteParents,
   searchParents,
 } = require("../controllers/parents.controller");
+const validateToken = require("../middlewares/auth-guard");
 
+// Public routes (no authentication required)
 router.post("/register", registerParents);
-router.get("/", getAllParents);
-router.get("/search", searchParents);
-router.get("/:id", getParentsById);
-router.put("/:id", updateParents);
-router.delete("/:id", deleteParents);
+
+// Protected routes (authentication required)
+router.get("/", validateToken, getAllParents);
+router.get("/search", validateToken, searchParents);
+router.get("/:id", validateToken, getParentsById);
+router.put("/:id", validateToken, updateParents);
+router.delete("/:id", validateToken, deleteParents);
 
 module.exports = router;

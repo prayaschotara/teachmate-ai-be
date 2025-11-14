@@ -10,14 +10,18 @@ const {
   getStudentsByGrade,
   getStudentsByClass,
 } = require("../controllers/student.controller");
+const validateToken = require("../middlewares/auth-guard");
 
+// Public routes (no authentication required)
 router.post("/register", registerStudent);
-router.get("/", getAllStudents);
-router.get("/search", searchStudents);
-router.get("/grade/:grade", getStudentsByGrade);
-router.get("/class/:class", getStudentsByClass);
-router.get("/:id", getStudentById);
-router.put("/:id", updateStudent);
-router.delete("/:id", deleteStudent);
+
+// Protected routes (authentication required)
+router.get("/", validateToken, getAllStudents);
+router.get("/search", validateToken, searchStudents);
+router.get("/grade/:grade", validateToken, getStudentsByGrade);
+router.get("/class/:class", validateToken, getStudentsByClass);
+router.get("/:id", validateToken, getStudentById);
+router.put("/:id", validateToken, updateStudent);
+router.delete("/:id", validateToken, deleteStudent);
 
 module.exports = router;

@@ -2,6 +2,7 @@ const Teacher = require("../models/Teacher.model");
 const Grade = require("../models/Grade.model");
 const Class = require("../models/Class.model");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const registerTeacher = async (teacherData) => {
   const { name, email, password, phone, class_names, grade_names, subject_names } = teacherData;
@@ -209,8 +210,54 @@ const getTeachersByClass = async (className) => {
   return teachers;
 };
 
+const loginTeacher = async (email, password) => {
+  // Find teacher by email
+  const teacher = await Teacher.findOne({ email });
+  if (!teacher) {
+    const error = new Error("Invalid email or password");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Check if teacher is active
+  if (!teacher.isActive) {
+    const error = new Error("Account is inactive. Please contact administrator");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  // Verify password
+  const isPasswordValid = await bcrypt.compare(password, teacher.password);
+  if (!isPasswordValid) {
+    const error = new Error("Invalid email or password");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  // Generate JWT token with 1 month expiration
+  const token = jwt.sign(
+    {
+      id: teacher._id,
+      email: teacher.email,
+      name: teacher.name,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "30d" } // 1 month = 30 days
+  );
+
+  // Remove password from response
+  const teacherObject = teacher.toObject();
+  delete teacherObject.password;
+
+  return {
+    token,
+    teacher: teacherObject,
+  };
+};
+
 module.exports = {
   registerTeacher,
+  loginTeacher,
   getAllTeachers,
   getTeacherById,
   updateTeacher,

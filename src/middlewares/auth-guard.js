@@ -11,11 +11,11 @@ async function validateToken(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_KEY);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
-    responseHelper.unauthorized(res, "Invalid token", null);
+    responseHelper.unauthorized(res, "Invalid or expired token", null);
   }
 }
 

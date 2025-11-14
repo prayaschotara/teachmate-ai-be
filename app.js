@@ -7,6 +7,7 @@ const errorHandler = require("./src/middlewares/errorHandler");
 dotenv.config();
 
 //Import all API routes
+const authRouter = require("./src/routes/auth.router");
 const testRouter = require("./src/routes/test.router");
 const teacherRouter = require("./src/routes/teacher.router");
 const studentRouter = require("./src/routes/student.router");
@@ -32,6 +33,7 @@ app.use(cors());
 app.use(morgan("dev"));
 const port = process.env.PORT || 3000;
 
+app.use("/api/auth", authRouter);
 app.use("/api/teacher", teacherRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/parents", parentsRouter);
