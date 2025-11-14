@@ -146,7 +146,7 @@ const assessmentController = {
       const { status, subject_id, grade_id } = req.query;
 
       const filter = { teacher_id: teacherId };
-      
+
       if (status) filter.status = status;
       if (subject_id) filter.subject_id = subject_id;
       if (grade_id) filter.grade_id = grade_id;
@@ -211,6 +211,114 @@ const assessmentController = {
 
     } catch (error) {
       console.error('Error in updateStatus controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Get active assessments for students by class
+   * GET /api/assessment/student/class/:classId
+   */
+  async getActiveAssessmentsByClass(req, res) {
+    try {
+      const { classId } = req.params;
+
+      const assessments = await Assessment.find({
+        class_id: classId,
+        status: 'Active',
+        isActive: true
+      })
+        .populate('teacher_id', 'name')
+        .populate('subject_id', 'subject_name')
+        .populate('grade_id', 'grade_name')
+        .sort({ opens_on: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: assessments.length,
+        data: assessments
+      });
+
+    } catch (error) {
+      console.error('Error in getActiveAssessmentsByClass controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Get active assessments for students by grade
+   * GET /api/assessment/student/grade/:gradeId
+   */
+  async getActiveAssessmentsByGrade(req, res) {
+    try {
+      const { gradeId } = req.params;
+
+      const assessments = await Assessment.find({
+        grade_id: gradeId,
+        status: 'Active',
+        isActive: true
+      })
+        .populate('teacher_id', 'name')
+        .populate('subject_id', 'subject_name')
+        .populate('class_id', 'class_name')
+        .sort({ opens_on: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: assessments.length,
+        data: assessments
+      });
+
+    } catch (error) {
+      console.error('Error in getActiveAssessmentsByGrade controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Get all assessments for students (with filters)
+   * GET /api/assessment/student/all
+   */
+  async getStudentAssessments(req, res) {
+    try {
+      const { class_id, grade_id, teacher_id, subject_id, status } = req.query;
+
+      const filter = { isActive: true };
+
+      if (class_id) filter.class_id = class_id;
+      if (grade_id) filter.grade_id = grade_id;
+      if (teacher_id) filter.teacher_id = teacher_id;
+      if (subject_id) filter.subject_id = subject_id;
+      if (status) filter.status = status;
+      else filter.status = 'Active'; // Default to active only
+
+      const assessments = await Assessment.find(filter)
+        .populate('teacher_id', 'name')
+        .populate('subject_id', 'subject_name')
+        .populate('grade_id', 'grade_name')
+        .populate('class_id', 'class_name')
+        .sort({ opens_on: -1 });
+
+      return res.status(200).json({
+        success: true,
+        count: assessments.length,
+        data: assessments
+      });
+
+    } catch (error) {
+      console.error('Error in getStudentAssessments controller:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',

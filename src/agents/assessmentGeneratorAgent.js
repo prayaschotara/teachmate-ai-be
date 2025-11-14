@@ -273,6 +273,7 @@ OUTPUT FORMAT (JSON only):
         grade_name: input.grade_name,
         subject_id: input.subject_id,
         subject_name: input.subject_name,
+        lesson_plan_id: input.lesson_plan_id,
         topics: input.topics,
         teacher_id: input.teacher_id,
         total_marks: 20,

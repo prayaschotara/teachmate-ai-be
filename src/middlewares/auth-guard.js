@@ -1,6 +1,11 @@
 const jwt = require("jsonwebtoken");
 const responseHelper = require("../helpers/http-responses");
 async function validateToken(req, res, next) {
+
+  if (process.env.NODE_ENV === "dev") {
+    next()
+    return;
+  }
   const authHeader = req.headers["authorization"];
 
   if (!authHeader || !authHeader.startsWith("Bearer")) {

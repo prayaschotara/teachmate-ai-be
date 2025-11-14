@@ -4,6 +4,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const mongoose = require("mongoose");
 const errorHandler = require("./src/middlewares/errorHandler");
+const assessmentScheduler = require("./src/services/assessmentScheduler.service");
 dotenv.config();
 
 //Import all API routes
@@ -19,11 +20,16 @@ const chapterRouter = require("./src/routes/chapter.router");
 const lessonPlanRouter = require("./src/routes/lessonPlan.router");
 const assessmentRouter = require("./src/routes/assessment.router");
 const contentCurationRouter = require("./src/routes/contentCuration.router");
+const submissionRouter = require("./src/routes/submission.router");
 
 const app = express();
 mongoose
   .connect(process.env.MONGO_URI, { dbName: "teachmate-ai" })
-  .then(() => console.log("MongoDB connected successfully"))
+  .then(() => {
+    console.log("MongoDB connected successfully");
+    // Start assessment scheduler after DB connection
+    assessmentScheduler.start();
+  })
   .catch((err) => {
     console.error("MongoDB connection error:", err)
     process.exit(0)
@@ -44,6 +50,7 @@ app.use("/api/chapter", chapterRouter);
 app.use("/api/lesson-plan", lessonPlanRouter);
 app.use("/api/assessment", assessmentRouter);
 app.use("/api/content", contentCurationRouter);
+app.use("/api/submission", submissionRouter);
 app.use("/api/test", testRouter);
 app.use(errorHandler);
 

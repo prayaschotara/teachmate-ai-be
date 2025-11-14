@@ -19,4 +19,14 @@ router.get('/teacher/:teacherId', validateToken, assessmentController.getTeacher
 // Update assessment status
 router.patch('/:id/status', validateToken, assessmentController.updateStatus);
 
+// Student-facing routes
+// Get active assessments by class
+router.get('/student/class/:classId', validateToken, assessmentController.getActiveAssessmentsByClass);
+
+// Get active assessments by grade
+router.get('/student/grade/:gradeId', validateToken, assessmentController.getActiveAssessmentsByGrade);
+
+// Get all assessments with filters (for student portal)
+router.get('/student/all', validateToken, assessmentController.getStudentAssessments);
+
 module.exports = router;
