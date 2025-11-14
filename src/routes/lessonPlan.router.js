@@ -26,4 +26,9 @@ router.patch('/:id/status', lessonPlanController.updateStatus);
 // Delete lesson plan
 router.delete('/:id', lessonPlanController.deleteLessonPlan);
 
+// Workflow endpoints
+router.post('/:id/trigger-content-curation', lessonPlanController.triggerContentCuration);
+router.post('/:id/trigger-assessment', lessonPlanController.triggerAssessment);
+router.post('/:id/execute-workflow', lessonPlanController.executeCompleteWorkflow);
+
 module.exports = router;

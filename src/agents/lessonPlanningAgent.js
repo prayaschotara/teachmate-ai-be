@@ -11,7 +11,7 @@ class LessonPlanningAgent {
       apiKey: process.env.PINECONE_API_KEY
     });
     this.index = this.pinecone.index('teachmate-resources');
-    
+
     this.openrouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
     this.openrouterKey = process.env.OPENROUTER_API_KEY;
     this.model = 'anthropic/claude-3.5-sonnet';  // Best for structured output
@@ -24,9 +24,9 @@ class LessonPlanningAgent {
     try {
       // Create comprehensive query text using all inputs
       const queryText = `${subject} ${chapter} grade ${grade} education learning teaching curriculum ${sessions} sessions`;
-      
+
       console.log(`🔍 Pinecone Query: "${queryText}"`);
-      
+
       // Generate embedding for the query
       const embeddingResponse = await axios.post(
         'https://openrouter.ai/api/v1/embeddings',
@@ -52,6 +52,9 @@ class LessonPlanningAgent {
 
       // Add subject filter
       if (subject) {
+        if (subject === "English") { // patch to filter with pinecone metadata strict case sensitivity
+          subject = subject.toLowerCase()
+        }
         filter.subject = subject;
       }
 
@@ -76,11 +79,11 @@ class LessonPlanningAgent {
       });
 
       console.log(`✅ Pinecone returned ${results.matches?.length || 0} matches`);
-      
+
       // If no results with strict filter, try broader search
       if (!results.matches || results.matches.length === 0) {
         console.log('🔄 Trying broader search without chapter filter...');
-        
+
         const broaderFilter = {
           grade: parseInt(grade),
           subject: subject
@@ -120,7 +123,7 @@ class LessonPlanningAgent {
     chunks.forEach(chunk => {
       const type = chunk.metadata?.contentType || 'explanation';
       const text = chunk.metadata?.textPreview || '';
-      
+
       if (grouped[type + 's']) {
         grouped[type + 's'].push(text);
       } else {
@@ -178,7 +181,7 @@ class LessonPlanningAgent {
       );
 
       const content = response.data.choices[0].message.content;
-      
+
       // Extract JSON from response (in case LLM adds extra text)
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
@@ -199,7 +202,7 @@ class LessonPlanningAgent {
     const curriculumType = this.getCurriculumType(input.subject_name);
     const sessionDuration = input.session_duration || 45;
     const chapterName = input.topic || input.chapter_name || context.topic;
-    
+
     return `Create a detailed lesson plan using ALL the provided information:
 
 REQUIRED INPUTS (ALL MUST BE USED):
@@ -267,10 +270,10 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
   getCurriculumType(subject) {
     const curriculumMap = {
       'Science': 'CBSE Science',
-      'Mathematics': 'CBSE Mathematics', 
+      'Mathematics': 'CBSE Mathematics',
       'English': 'CBSE English',
     };
-    
+
     return curriculumMap[subject] || 'CBSE General';
   }
 
@@ -353,15 +356,15 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
     if (!input.grade_name && !input.grade_id) {
       errors.push('Grade is required (grade_name or grade_id)');
     }
-    
+
     if (!input.subject_name && !input.subject_id) {
       errors.push('Subject is required (subject_name or subject_id)');
     }
-    
+
     if (!input.topic && !input.chapter_name) {
       errors.push('Chapter is required (topic or chapter_name)');
     }
-    
+
     if (!input.sessions) {
       errors.push('Sessions is required');
     }
@@ -401,10 +404,10 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
   async generate(input) {
     try {
       console.log('🎯 Starting lesson plan generation...');
-      
+
       // Log all inputs for debugging
       this.logInputs(input);
-      
+
       // Validate input - all 4 required fields
       const validationErrors = this.validateInput(input);
       if (validationErrors.length > 0) {
@@ -413,7 +416,7 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
 
       // Fetch chapter details (with fallback)
       let chapter, subject, grade;
-      
+
       try {
         if (input.chapter_id) chapter = await Chapter.findById(input.chapter_id);
         if (input.subject_id) subject = await Subject.findById(input.subject_id);
@@ -426,7 +429,7 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
       input.chapter_name = input.chapter_name || chapter?.chapter_name || input.topic || 'Chapter';
       input.subject_name = input.subject_name || subject?.subject_name || 'General';
       input.grade_name = input.grade_name || grade?.grade_name || '8';
-      
+
       // Set defaults
       input.session_duration = input.session_duration || 45;
       const chapterNumber = input.chapter_number || 1;
@@ -436,7 +439,7 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
       console.log(`   Subject: ${input.subject_name}`);
       console.log(`   Chapter: ${input.topic || input.chapter_name}`);
       console.log(`   Sessions: ${input.sessions}`);
-      
+
       // Step 1: Query Pinecone with all required parameters
       const chunks = await this.queryPineconeForContent(
         input.grade_name,
@@ -464,7 +467,7 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
       if (input.teacher_id && input.subject_id && input.grade_id) {
         console.log('💾 Saving lesson plan...');
         const savedPlan = await this.saveLessonPlan(planData, input);
-        
+
         console.log('✅ Lesson plan generated and saved successfully!');
         return {
           success: true,
