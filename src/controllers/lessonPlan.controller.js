@@ -401,6 +401,7 @@ const lessonPlanController = {
       const { id } = req.params;
       const { status, assessment_config } = req.body;
 
+
       const validStatuses = ['Draft', 'Active', 'Completed', 'Archived'];
       if (!validStatuses.includes(status)) {
         return res.status(400).json({

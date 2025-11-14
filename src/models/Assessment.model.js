@@ -7,6 +7,11 @@ const assessmentSchema = new mongoose.Schema(
       required: [true, "Assessment title is required"],
       trim: true,
     },
+    lesson_plan_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LessonPlan",
+      required: [true, "Lesson Plan ID is required"],
+    },
     opens_on: {
       type: Date,
       required: [true, "Opens on date is required"],

@@ -11,7 +11,7 @@ class AssessmentGeneratorAgent {
       apiKey: process.env.PINECONE_API_KEY
     });
     this.index = this.pinecone.index('teachmate-resources');
-    
+
     this.openrouterUrl = 'https://openrouter.ai/api/v1/chat/completions';
     this.openrouterKey = process.env.OPENROUTER_API_KEY;
     this.model = 'anthropic/claude-3.5-sonnet';
@@ -32,7 +32,7 @@ class AssessmentGeneratorAgent {
     try {
       // Create query from topics
       const queryText = topics.join(' ');
-      
+
       // Generate embedding
       const embeddingResponse = await axios.post(
         'https://openrouter.ai/api/v1/embeddings',
@@ -84,10 +84,10 @@ class AssessmentGeneratorAgent {
       const type = chunk.metadata?.contentType || 'explanation';
       const text = chunk.metadata?.textPreview || '';
       const section = chunk.metadata?.section || '';
-      
+
       const content = { text, section };
 
-      switch(type) {
+      switch (type) {
         case 'exercise':
           exercises.push(content);
           break;
@@ -148,7 +148,7 @@ class AssessmentGeneratorAgent {
 
       const content = response.data.choices[0].message.content;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      
+
       if (!jsonMatch) {
         throw new Error('No valid JSON found in LLM response');
       }
@@ -260,6 +260,7 @@ OUTPUT FORMAT (JSON only):
    * Save assessment to database
    */
   async saveAssessment(assessmentData, questionsData, input) {
+    console.log("inputs", input)
     try {
       // Create Assessment
       const assessment = new Assessment({
@@ -321,7 +322,7 @@ OUTPUT FORMAT (JSON only):
   async linkToLessonPlan(lessonPlanId, assessmentId, sessionNumber = null) {
     try {
       const lessonPlan = await LessonPlan.findById(lessonPlanId);
-      
+
       if (!lessonPlan) {
         throw new Error('Lesson plan not found');
       }

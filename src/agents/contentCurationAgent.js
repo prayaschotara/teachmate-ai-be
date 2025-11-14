@@ -5,7 +5,7 @@ class ContentCurationAgent {
   constructor() {
     this.youtubeApiKey = process.env.YOUTUBE_API_KEY;
     this.youtubeBaseUrl = 'https://www.googleapis.com/youtube/v3';
-    
+
     // Subject-specific configuration
     this.resourceConfig = {
       Science: {
@@ -93,11 +93,11 @@ class ContentCurationAgent {
   parseDuration(duration) {
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
     if (!match) return 0;
-    
+
     const hours = parseInt(match[1] || 0);
     const minutes = parseInt(match[2] || 0);
     const seconds = parseInt(match[3] || 0);
-    
+
     return hours * 60 + minutes + seconds / 60;
   }
 
@@ -107,7 +107,7 @@ class ContentCurationAgent {
   calculateRelevance(video, topic, subject) {
     let score = 0;
     const config = this.resourceConfig[subject];
-    
+
     // 1. Title match (0.4)
     const titleLower = video.snippet.title.toLowerCase();
     const topicLower = topic.toLowerCase();
@@ -116,13 +116,13 @@ class ContentCurationAgent {
     } else if (titleLower.split(' ').some(word => topicLower.includes(word))) {
       score += 0.2;
     }
-    
+
     // 2. Channel reputation (0.3)
     const channelTitle = video.snippet.channelTitle;
     if (config.channels.some(ch => channelTitle.includes(ch))) {
       score += 0.3;
     }
-    
+
     // 3. Duration (0.2)
     if (video.contentDetails) {
       const duration = this.parseDuration(video.contentDetails.duration);
@@ -132,7 +132,7 @@ class ContentCurationAgent {
         score += 0.1;
       }
     }
-    
+
     // 4. Engagement (0.1)
     if (video.statistics) {
       const viewCount = parseInt(video.statistics.viewCount || 0);
@@ -143,7 +143,7 @@ class ContentCurationAgent {
         else if (ratio > 0.01) score += 0.05;
       }
     }
-    
+
     return Math.min(score, 1.0);
   }
 
@@ -230,7 +230,7 @@ class ContentCurationAgent {
 
     topics.forEach(topic => {
       const topicLower = topic.toLowerCase();
-      
+
       // Check if any simulation keyword matches the topic
       Object.keys(config.simulations).forEach(key => {
         if (topicLower.includes(key) || key.includes(topicLower.split(' ')[0])) {
@@ -250,17 +250,66 @@ class ContentCurationAgent {
   }
 
   /**
+   * Distribute videos to sessions based on topics covered
+   */
+  distributeVideosToSessions(lessonPlan, videos, simulations) {
+    const updatedSessions = lessonPlan.session_details.map(session => {
+      const sessionTopics = session.topics_covered || [];
+
+      // Find videos matching this session's topics
+      const sessionVideos = videos.filter(video =>
+        sessionTopics.some(topic =>
+          topic.toLowerCase().includes(video.topic.toLowerCase()) ||
+          video.topic.toLowerCase().includes(topic.toLowerCase())
+        )
+      );
+
+      // Find simulations matching this session's topics
+      const sessionSimulations = simulations.filter(sim =>
+        sessionTopics.some(topic =>
+          topic.toLowerCase().includes(sim.topic.toLowerCase()) ||
+          sim.topic.toLowerCase().includes(topic.toLowerCase())
+        )
+      );
+
+      // Format resources for this session
+      const resources = {
+        videos: sessionVideos.map(v => ({
+          title: v.title,
+          url: v.url,
+          duration: v.duration,
+          source: v.source,
+          topic: v.topic
+        })),
+        simulations: sessionSimulations.map(s => ({
+          title: s.title,
+          url: s.url,
+          type: s.type,
+          topic: s.topic
+        }))
+      };
+
+      return {
+        ...session.toObject(),
+        resources: resources
+      };
+    });
+
+    return updatedSessions;
+  }
+
+  /**
    * Save resources to lesson plan
    */
   async saveToLessonPlan(lessonPlanId, resources) {
     try {
       const lessonPlan = await LessonPlan.findById(lessonPlanId);
-      
+
       if (!lessonPlan) {
         throw new Error('Lesson plan not found');
       }
 
-      // Format for lesson plan schema
+      // Format for lesson plan schema (overall recommended videos)
       const formattedVideos = resources.videos.map(v => ({
         title: v.title,
         url: v.url,
@@ -269,8 +318,21 @@ class ContentCurationAgent {
         source: v.source
       }));
 
+      // Distribute videos and simulations to individual sessions
+      const updatedSessions = this.distributeVideosToSessions(
+        lessonPlan,
+        resources.videos,
+        resources.simulations
+      );
+
       lessonPlan.recommended_videos = formattedVideos;
+      lessonPlan.session_details = updatedSessions;
       await lessonPlan.save();
+
+      console.log('📊 Distribution summary:');
+      updatedSessions.forEach((session, idx) => {
+        console.log(`  Session ${idx + 1}: ${session.resources.videos.length} videos, ${session.resources.simulations.length} simulations`);
+      });
 
       return lessonPlan;
     } catch (error) {
@@ -305,7 +367,7 @@ class ContentCurationAgent {
       // Search for each topic
       for (const topic of input.topics) {
         console.log(`\n🔍 Searching for: ${topic}`);
-        
+
         // Get YouTube videos
         const videos = await this.searchYouTube(topic, input.subject, input.grade);
         console.log(`  ✓ Found ${videos.length} videos`);
