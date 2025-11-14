@@ -2,19 +2,29 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
+const mongoose = require("mongoose");
 const errorHandler = require("./src/middlewares/errorHandler");
 dotenv.config();
 
 //Import all API routes
 const testRouter = require("./src/routes/test.router");
+const teacherRouter = require("./src/routes/teacher.router");
 
 const app = express();
+mongoose
+  .connect(process.env.MONGO_URI, {dbName: "teachmate-ai"})
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err)
+    process.exit(0)
+  });
 app.use(express.json());
 app.use(cors());
 app.use(morgan("dev"));
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.use("/api", testRouter);
+app.use("/api/teacher", teacherRouter);
 app.use(errorHandler);
 
 app.get("/", (req, res) => {
