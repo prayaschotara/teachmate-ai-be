@@ -591,6 +591,183 @@ const lessonPlanController = {
         error: error.message
       });
     }
+  },
+
+  /**
+   * Mark a session as complete and trigger session-wise assessment generation
+   * PATCH /api/lesson-plan/:id/session/:sessionNumber/complete
+   */
+  async completeSession(req, res) {
+    try {
+
+      const { id, sessionNumber } = req.params;
+      const { assessment_config } = req.body;
+
+      const lessonPlan = await LessonPlan.findById(id);
+
+      if (!lessonPlan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson plan not found'
+        });
+      }
+
+      const session = lessonPlan.session_details.find(
+        s => s.session_number === parseInt(sessionNumber)
+      );
+
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          message: `Session ${sessionNumber} not found`
+        });
+      }
+
+      if (session.status === 'Completed') {
+        return res.status(400).json({
+          success: false,
+          message: `Session ${sessionNumber} is already completed`
+        });
+      }
+
+      // Mark session as completed
+      session.status = 'Completed';
+      session.completed_at = new Date();
+      await lessonPlan.save();
+
+      // Check if all sessions are completed
+      const allSessionsCompleted = lessonPlan.session_details.every(s => s.status === 'Completed');
+
+      return res.status(200).json({
+        success: true,
+        message: `Session ${sessionNumber} marked as complete.`,
+        data: {
+          session,
+          all_sessions_completed: allSessionsCompleted,
+          note: allSessionsCompleted
+            ? 'All sessions completed! You can now mark the lesson plan as Completed to generate the overall chapter assessment.'
+            : null
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in completeSession controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Create session assessment manually
+   * POST /api/lesson-plan/:id/session/:sessionNumber/create-assessment
+   */
+  async createSessionAssessment(req, res) {
+    try {
+      console.log(req.body)
+      const { id, sessionNumber } = req.params;
+      const { opens_on, due_date, duration, class_id } = req.body;
+
+      // Validate required fields
+      if (!opens_on || !due_date) {
+        return res.status(400).json({
+          success: false,
+          message: 'opens_on and due_date are required fields'
+        });
+      }
+
+      // Validate datetime format
+      const opensOnDate = new Date(opens_on);
+      const dueDate = new Date(due_date);
+
+      if (isNaN(opensOnDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid opens_on datetime format'
+        });
+      }
+
+      if (isNaN(dueDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid due_date datetime format'
+        });
+      }
+
+      // Validate that due_date is after opens_on
+      if (dueDate <= opensOnDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'due_date must be after opens_on'
+        });
+      }
+
+      const lessonPlan = await LessonPlan.findById(id);
+
+      if (!lessonPlan) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson plan not found'
+        });
+      }
+
+      const session = lessonPlan.session_details.find(
+        s => s.session_number === parseInt(sessionNumber)
+      );
+
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          message: `Session ${sessionNumber} not found`
+        });
+      }
+
+      if (session.status !== 'Completed') {
+        return res.status(400).json({
+          success: false,
+          message: `Session ${sessionNumber} must be completed before creating an assessment`
+        });
+      }
+
+      // Prepare assessment config
+      const assessment_config = {
+        opens_on: opensOnDate,
+        due_date: dueDate,
+        class_id: class_id,
+        duration: duration || 60 // Default to 60 minutes if not provided
+      };
+
+      // Trigger session-wise assessment generation
+      const assessmentResult = await AgentWorkflowService.triggerSessionAssessment(
+        id,
+        parseInt(sessionNumber),
+        assessment_config
+      );
+
+      if (!assessmentResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to generate session assessment',
+          error: assessmentResult.error
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: `Session ${sessionNumber} assessment created successfully`,
+        data: assessmentResult
+      });
+
+    } catch (error) {
+      console.error('Error in createSessionAssessment controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
   }
 };
 

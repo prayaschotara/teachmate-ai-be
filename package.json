@@ -14,7 +14,8 @@
     "test-agent1": "node src/scripts/test-agent1-no-db.js",
     "test-agent2": "node src/scripts/test-agent2.js",
     "test-agent3-session": "node src/scripts/test-agent3-session.js",
-    "test-agent3-chapter": "node src/scripts/test-agent3-chapter.js"
+    "test-agent3-chapter": "node src/scripts/test-agent3-chapter.js",
+    "test-submission": "node src/scripts/test-submission.js"
   },
   "author": "",
   "license": "ISC",

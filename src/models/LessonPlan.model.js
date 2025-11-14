@@ -30,6 +30,15 @@ const sessionDetailSchema = new mongoose.Schema({
       ref: "Assessment",
     },
   ],
+  status: {
+    type: String,
+    enum: ["Pending", "Completed"],
+    default: "Pending",
+  },
+  completed_at: {
+    type: Date,
+    default: null,
+  },
 }, { _id: false });
 
 const lessonPlanSchema = new mongoose.Schema(

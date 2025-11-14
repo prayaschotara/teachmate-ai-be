@@ -18,6 +18,7 @@ This project serves as a boilerplate for quickly starting new API projects using
 - Middleware for authentication and error handling.
 - Validation of request bodies using `express-validator`.
 - Resource generation script for creating controllers, services, and routes.
+- **Automated Agent Workflow**: Three AI agents working in sequence (Lesson Plan → Content Curation → Assessment Generation). See [AGENT_WORKFLOW.md](AGENT_WORKFLOW.md) for details.
 
 ## Installation
 

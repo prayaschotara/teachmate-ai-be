@@ -1,6 +1,7 @@
 const AssessmentGeneratorAgent = require('../agents/assessmentGeneratorAgent');
 const Assessment = require('../models/Assessment.model');
 const AssessmentQuestions = require('../models/AssessmentQuestions.model');
+const Submission = require('../models/Submission.model');
 
 const assessmentController = {
   /**
@@ -226,6 +227,7 @@ const assessmentController = {
   async getActiveAssessmentsByClass(req, res) {
     try {
       const { classId } = req.params;
+      const studentId = req.user.id; // Get student ID from authenticated user
 
       const assessments = await Assessment.find({
         class_id: classId,
@@ -235,12 +237,37 @@ const assessmentController = {
         .populate('teacher_id', 'name')
         .populate('subject_id', 'subject_name')
         .populate('grade_id', 'grade_name')
-        .sort({ opens_on: -1 });
+        .sort({ opens_on: -1 })
+        .lean(); // Use lean() for better performance
+
+      // Check submission status for each assessment
+      const assessmentsWithStatus = await Promise.all(
+        assessments.map(async (assessment) => {
+          const submission = await Submission.findOne({
+            assessment_id: assessment._id,
+            student_id: studentId
+          }).select('status submitted_at total_marks_obtained percentage');
+
+          return {
+            ...assessment,
+            submission_status: submission ? {
+              has_submitted: true,
+              status: submission.status,
+              submitted_at: submission.submitted_at,
+              total_marks_obtained: submission.total_marks_obtained,
+              percentage: submission.percentage
+            } : {
+              has_submitted: false,
+              status: 'Pending'
+            }
+          };
+        })
+      );
 
       return res.status(200).json({
         success: true,
-        count: assessments.length,
-        data: assessments
+        count: assessmentsWithStatus.length,
+        data: assessmentsWithStatus
       });
 
     } catch (error) {
@@ -260,6 +287,7 @@ const assessmentController = {
   async getActiveAssessmentsByGrade(req, res) {
     try {
       const { gradeId } = req.params;
+      const studentId = req.user.id; // Get student ID from authenticated user
 
       const assessments = await Assessment.find({
         grade_id: gradeId,
@@ -269,12 +297,37 @@ const assessmentController = {
         .populate('teacher_id', 'name')
         .populate('subject_id', 'subject_name')
         .populate('class_id', 'class_name')
-        .sort({ opens_on: -1 });
+        .sort({ opens_on: -1 })
+        .lean(); // Use lean() for better performance
+
+      // Check submission status for each assessment
+      const assessmentsWithStatus = await Promise.all(
+        assessments.map(async (assessment) => {
+          const submission = await Submission.findOne({
+            assessment_id: assessment._id,
+            student_id: studentId
+          }).select('status submitted_at total_marks_obtained percentage');
+
+          return {
+            ...assessment,
+            submission_status: submission ? {
+              has_submitted: true,
+              status: submission.status,
+              submitted_at: submission.submitted_at,
+              total_marks_obtained: submission.total_marks_obtained,
+              percentage: submission.percentage
+            } : {
+              has_submitted: false,
+              status: 'Pending'
+            }
+          };
+        })
+      );
 
       return res.status(200).json({
         success: true,
-        count: assessments.length,
-        data: assessments
+        count: assessmentsWithStatus.length,
+        data: assessmentsWithStatus
       });
 
     } catch (error) {
@@ -294,6 +347,8 @@ const assessmentController = {
   async getStudentAssessments(req, res) {
     try {
       const { class_id, grade_id, teacher_id, subject_id, status } = req.query;
+      // const studentId = req.user.id; // Get student ID from authenticated user
+      const studentId = "6916f7b48ffcc9d6c79313c6" // Get student ID from authenticated user
 
       const filter = { isActive: true };
 
@@ -309,12 +364,37 @@ const assessmentController = {
         .populate('subject_id', 'subject_name')
         .populate('grade_id', 'grade_name')
         .populate('class_id', 'class_name')
-        .sort({ opens_on: -1 });
+        .sort({ opens_on: -1 })
+        .lean(); // Use lean() for better performance
+
+      // Check submission status for each assessment
+      const assessmentsWithStatus = await Promise.all(
+        assessments.map(async (assessment) => {
+          const submission = await Submission.findOne({
+            assessment_id: assessment._id,
+            student_id: studentId
+          }).select('status submitted_at total_marks_obtained percentage');
+
+          return {
+            ...assessment,
+            submission_status: submission ? {
+              has_submitted: true,
+              status: submission.status,
+              submitted_at: submission.submitted_at,
+              total_marks_obtained: submission.total_marks_obtained,
+              percentage: submission.percentage
+            } : {
+              has_submitted: false,
+              status: 'Pending'
+            }
+          };
+        })
+      );
 
       return res.status(200).json({
         success: true,
-        count: assessments.length,
-        data: assessments
+        count: assessmentsWithStatus.length,
+        data: assessmentsWithStatus
       });
 
     } catch (error) {

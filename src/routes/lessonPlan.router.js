@@ -32,4 +32,10 @@ router.post('/:id/trigger-content-curation', validateToken, lessonPlanController
 router.post('/:id/trigger-assessment', validateToken, lessonPlanController.triggerAssessment);
 router.post('/:id/execute-workflow', validateToken, lessonPlanController.executeCompleteWorkflow);
 
+// Session completion endpoint
+router.patch('/:id/session/:sessionNumber/complete', validateToken, lessonPlanController.completeSession);
+
+// Create session assessment manually
+router.post('/:id/session/:sessionNumber/create-assessment', validateToken, lessonPlanController.createSessionAssessment);
+
 module.exports = router;

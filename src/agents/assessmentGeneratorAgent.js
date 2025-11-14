@@ -155,6 +155,7 @@ class AssessmentGeneratorAgent {
 
       return JSON.parse(jsonMatch[0]);
     } catch (error) {
+      console.log(error)
       console.error('Error calling OpenRouter:', error.response?.data || error.message);
       throw new Error('Failed to generate questions');
     }

@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const mongoose = require("mongoose");
 const errorHandler = require("./src/middlewares/errorHandler");
 const assessmentScheduler = require("./src/services/assessmentScheduler.service");
+const submissionGradingScheduler = require("./src/services/submissionGradingScheduler.service");
 dotenv.config();
 
 //Import all API routes
@@ -29,6 +30,8 @@ mongoose
     console.log("MongoDB connected successfully");
     // Start assessment scheduler after DB connection
     assessmentScheduler.start();
+    // Start submission grading scheduler
+    submissionGradingScheduler.start();
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err)

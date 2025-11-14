@@ -108,6 +108,64 @@ class AgentWorkflowService {
     }
 
     /**
+     * Trigger session-wise assessment generation when a session is completed
+     */
+    static async triggerSessionAssessment(lessonPlanId, sessionNumber, assessmentConfig = {}) {
+        try {
+            console.log(`🔄 Workflow: Triggering session ${sessionNumber} assessment generation...`);
+
+            const lessonPlan = await LessonPlan.findById(lessonPlanId);
+            if (!lessonPlan) {
+                throw new Error('Lesson plan not found');
+            }
+
+            const session = lessonPlan.session_details.find(s => s.session_number === sessionNumber);
+            if (!session) {
+                throw new Error(`Session ${sessionNumber} not found`);
+            }
+
+            if (session.status !== 'Completed') {
+                return {
+                    success: false,
+                    error: `Session ${sessionNumber} must be marked as Completed to generate assessment`
+                };
+            }
+
+            // Initialize assessment generator agent
+            const agent = new AssessmentGeneratorAgent();
+
+            // Generate session-wise assessment
+            const result = await agent.generate({
+                lesson_plan_id: lessonPlanId,
+                assessment_type: 'session',
+                session_number: sessionNumber,
+                class_id: assessmentConfig.class_id,
+                grade_id: lessonPlan.grade_id,
+                subject_id: lessonPlan.subject_id,
+                opens_on: assessmentConfig.opens_on || new Date(),
+                due_date: assessmentConfig.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+                duration: assessmentConfig.duration || 30
+            });
+
+            if (!result.success) {
+                console.error(`❌ Session ${sessionNumber} assessment generation failed:`, result.error);
+                return { success: false, error: result.error };
+            }
+
+            console.log(`✅ Session ${sessionNumber} assessment generated successfully`);
+            return {
+                success: true,
+                assessment: result.assessment,
+                questions: result.questions
+            };
+
+        } catch (error) {
+            console.error(`❌ Error in session ${sessionNumber} assessment workflow:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
      * Complete workflow: Generate lesson plan -> Curate content -> Generate assessment
      */
     static async executeCompleteWorkflow(lessonPlanId, assessmentConfig = {}) {
