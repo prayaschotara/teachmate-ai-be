@@ -13,6 +13,7 @@ const gradeRouter = require("./src/routes/grade.router");
 const classRouter = require("./src/routes/class.router");
 const subjectRouter = require("./src/routes/subject.router");
 const chapterRouter = require("./src/routes/chapter.router");
+const lessonPlanRouter = require("./src/routes/lessonPlan.router");
 
 const app = express();
 mongoose
@@ -32,6 +33,7 @@ app.use("/api/grade", gradeRouter);
 app.use("/api/class", classRouter);
 app.use("/api/subject", subjectRouter);
 app.use("/api/chapter", chapterRouter);
+app.use("/api/lesson-plan", lessonPlanRouter);
 app.use("/api/test", testRouter);
 app.use(errorHandler);
 
