@@ -8,12 +8,14 @@ const {
   updateSubject,
   deleteSubject,
 } = require("../controllers/subject.controller");
+const validateToken = require("../middlewares/auth-guard");
 
-router.post("/", createSubject);
-router.get("/", getAllSubjects);
-router.get("/grade/:gradeId", getSubjectsByGrade);
-router.get("/:id", getSubjectById);
-router.put("/:id", updateSubject);
-router.delete("/:id", deleteSubject);
+// All routes require authentication
+router.post("/", validateToken, createSubject);
+router.get("/", validateToken, getAllSubjects);
+router.get("/grade/:gradeId", validateToken, getSubjectsByGrade);
+router.get("/:id", validateToken, getSubjectById);
+router.put("/:id", validateToken, updateSubject);
+router.delete("/:id", validateToken, deleteSubject);
 
 module.exports = router;

@@ -7,11 +7,13 @@ const {
   updateClass,
   deleteClass,
 } = require("../controllers/class.controller");
+const validateToken = require("../middlewares/auth-guard");
 
-router.post("/", createClass);
-router.get("/", getAllClasses);
-router.get("/:id", getClassById);
-router.put("/:id", updateClass);
-router.delete("/:id", deleteClass);
+// All routes require authentication
+router.post("/", validateToken, createClass);
+router.get("/", validateToken, getAllClasses);
+router.get("/:id", validateToken, getClassById);
+router.put("/:id", validateToken, updateClass);
+router.delete("/:id", validateToken, deleteClass);
 
 module.exports = router;

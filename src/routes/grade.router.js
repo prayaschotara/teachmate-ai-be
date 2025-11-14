@@ -7,11 +7,13 @@ const {
   updateGrade,
   deleteGrade,
 } = require("../controllers/grade.controller");
+const validateToken = require("../middlewares/auth-guard");
 
-router.post("/", createGrade);
-router.get("/", getAllGrades);
-router.get("/:id", getGradeById);
-router.put("/:id", updateGrade);
-router.delete("/:id", deleteGrade);
+// All routes require authentication
+router.post("/", validateToken, createGrade);
+router.get("/", validateToken, getAllGrades);
+router.get("/:id", validateToken, getGradeById);
+router.put("/:id", validateToken, updateGrade);
+router.delete("/:id", validateToken, deleteGrade);
 
 module.exports = router;
