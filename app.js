@@ -10,6 +10,7 @@ dotenv.config();
 const testRouter = require("./src/routes/test.router");
 const teacherRouter = require("./src/routes/teacher.router");
 const studentRouter = require("./src/routes/student.router");
+const parentsRouter = require("./src/routes/parents.router");
 const gradeRouter = require("./src/routes/grade.router");
 const classRouter = require("./src/routes/class.router");
 const subjectRouter = require("./src/routes/subject.router");
@@ -33,6 +34,7 @@ const port = process.env.PORT || 3000;
 
 app.use("/api/teacher", teacherRouter);
 app.use("/api/student", studentRouter);
+app.use("/api/parents", parentsRouter);
 app.use("/api/grade", gradeRouter);
 app.use("/api/class", classRouter);
 app.use("/api/subject", subjectRouter);

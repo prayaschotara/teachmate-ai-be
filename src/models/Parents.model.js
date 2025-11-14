@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 
 const childInfoSchema = new mongoose.Schema(
   {
+    student_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: [true, "Student ID is required"],
+    },
     name: {
       type: String,
       required: [true, "Child name is required"],
@@ -13,24 +18,34 @@ const childInfoSchema = new mongoose.Schema(
       trim: true,
     },
     class: {
-      type: String,
-      required: [true, "Class is required"],
-      trim: true,
+      class_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Class",
+        required: [true, "Class ID is required"],
+      },
+      class_name: {
+        type: String,
+        required: [true, "Class name is required"],
+        trim: true,
+      },
     },
     grade: {
-      type: String,
-      required: [true, "Grade is required"],
-      trim: true,
-    },
-    id: {
-      type: String,
-      required: [true, "Student ID is required"],
-      trim: true,
+      grade_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Grade",
+        required: [true, "Grade ID is required"],
+      },
+      grade_name: {
+        type: String,
+        required: [true, "Grade name is required"],
+        trim: true,
+      },
     },
   },
+  { _id: false }
 );
 
-const familySchema = new mongoose.Schema(
+const parentsSchema = new mongoose.Schema(
   {
     father_fname: {
       type: String,
@@ -98,7 +113,7 @@ const familySchema = new mongoose.Schema(
 );
 
 // Custom validation: If father_fname exists, father_lname is required and vice versa
-familySchema.pre("save", function (next) {
+parentsSchema.pre("save", function (next) {
   // Father name validation
   if (this.father_fname && !this.father_lname) {
     return next(
@@ -138,4 +153,4 @@ familySchema.pre("save", function (next) {
   next();
 });
 
-module.exports = mongoose.model("Family", familySchema);
+module.exports = mongoose.model("Parents", parentsSchema);
