@@ -91,6 +91,14 @@ const updateSubject = async (id, subjectData) => {
   return subject;
 };
 
+const getSubjectsByGrade = async (gradeId) => {
+  const subjects = await Subject.find({ grade_id: gradeId, isActive: true })
+    .populate("grade_id")
+    .populate("classes.class_id")
+    .sort({ subject_name: 1 });
+  return subjects;
+};
+
 const deleteSubject = async (id) => {
   const subject = await Subject.findByIdAndDelete(id);
   if (!subject) {
@@ -105,6 +113,7 @@ module.exports = {
   createSubject,
   getAllSubjects,
   getSubjectById,
+  getSubjectsByGrade,
   updateSubject,
   deleteSubject,
 };

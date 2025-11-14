@@ -25,6 +25,19 @@ const getAllSubjects = async (req, res, next) => {
   }
 };
 
+const getSubjectsByGrade = async (req, res, next) => {
+  try {
+    const { gradeId } = req.params;
+    const subjects = await subjectService.getSubjectsByGrade(gradeId);
+    res.status(200).json({
+      success: true,
+      data: subjects,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getSubjectById = async (req, res, next) => {
   try {
     const subject = await subjectService.getSubjectById(req.params.id);
@@ -66,6 +79,7 @@ module.exports = {
   createSubject,
   getAllSubjects,
   getSubjectById,
+  getSubjectsByGrade,
   updateSubject,
   deleteSubject,
 };
