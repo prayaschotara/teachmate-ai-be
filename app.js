@@ -42,7 +42,7 @@ mongoose
   });
 app.use(express.json());
 app.use(cors({
-  origin: ["*"]
+  origin: ["*", "http://localhost:5173", "http://localhost:5174", "https://teachmate-ai-fe.vercel.app", "https://teachmate-ai-student-portal.vercel.app"]
 }));
 app.use(morgan("dev"));
 const port = process.env.PORT || 3000;
