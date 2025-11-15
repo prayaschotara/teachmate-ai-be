@@ -228,7 +228,7 @@ const assessmentController = {
   async getActiveAssessmentsByClass(req, res) {
     try {
       const { classId } = req.params;
-      const studentId = req.user.id; // Get student ID from authenticated user
+      const studentId = req.user?.id; // Get student ID from authenticated user
 
       const assessments = await Assessment.find({
         class_id: classId,

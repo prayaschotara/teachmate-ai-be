@@ -14,15 +14,16 @@ const lessonPlanController = {
         subject_id,
         grade_id,
         chapter_id,
+        class_id,
         chapter_number,
         sessions
       } = req.body;
 
       // Validate required fields
-      if (!teacher_id || !subject_id || !grade_id || !chapter_id || !chapter_number || !sessions) {
+      if (!teacher_id || !subject_id || !grade_id || !chapter_id || !class_id || !chapter_number || !sessions) {
         return res.status(400).json({
           success: false,
-          message: 'Missing required fields: teacher_id, subject_id, grade_id, chapter_id, chapter_number, sessions'
+          message: 'Missing required fields: teacher_id, subject_id, grade_id, chapter_id, class_id, chapter_number, sessions'
         });
       }
 
@@ -331,7 +332,8 @@ const lessonPlanController = {
         .populate('teacher_id', 'name email')
         .populate('subject_id', 'subject_name')
         .populate('grade_id', 'grade_name')
-        .populate('chapter_id', 'chapter_name');
+        .populate('chapter_id', 'chapter_name')
+        .populate('class_id', 'class_name');
 
       if (!lessonPlan) {
         return res.status(404).json({
@@ -374,6 +376,7 @@ const lessonPlanController = {
         .populate('subject_id', 'subject_name')
         .populate('grade_id', 'grade_name')
         .populate('chapter_id', 'chapter_name')
+        .populate('class_id', 'class_name')
         .sort({ createdAt: -1 });
 
       return res.status(200).json({

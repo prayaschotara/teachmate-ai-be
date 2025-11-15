@@ -17,6 +17,9 @@ router.get('/student/:studentId', submissionController.getStudentSubmissions);
 // Get ungraded submissions
 router.get('/ungraded/all', submissionController.getUngradedSubmissions);
 
+// Check submission status for a student and assessment
+router.get('/status/:assessmentId/:studentId', submissionController.checkSubmissionStatus);
+
 // Manual trigger for grading (for testing)
 router.post('/grade/trigger', submissionController.triggerManualGrading);
 

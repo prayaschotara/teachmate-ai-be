@@ -79,6 +79,11 @@ const lessonPlanSchema = new mongoose.Schema(
       type: Number,
       required: [true, "Chapter number is required"],
     },
+    class_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Class",
+      required: [true, "Class ID is required"],
+    },
     total_sessions: {
       type: Number,
       required: [true, "Total sessions is required"],

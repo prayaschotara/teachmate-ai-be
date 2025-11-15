@@ -252,6 +252,54 @@ const submissionController = {
     },
 
     /**
+     * Check submission status for a student and assessment
+     * GET /api/submission/status/:assessmentId/:studentId
+     */
+    async checkSubmissionStatus(req, res) {
+        try {
+            const { assessmentId, studentId } = req.params;
+
+            const submission = await Submission.findOne({
+                assessment_id: assessmentId,
+                student_id: studentId
+            });
+
+            if (!submission) {
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        submitted: false,
+                        submission: null
+                    }
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    submitted: true,
+                    submission: {
+                        _id: submission._id,
+                        status: submission.status,
+                        submitted_at: submission.submitted_at,
+                        total_marks_obtained: submission.total_marks_obtained,
+                        total_marks: submission.total_marks,
+                        percentage: submission.percentage
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error('Error in checkSubmissionStatus controller:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: error.message
+            });
+        }
+    },
+
+    /**
      * Manually trigger grading process (for testing)
      * POST /api/submission/grade/trigger
      */

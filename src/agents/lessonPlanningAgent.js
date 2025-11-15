@@ -301,6 +301,7 @@ NOTE: Do NOT include assessment or recommended_videos fields. They will be added
         chapter_id: input.chapter_id,
         chapter_name: input.chapter_name || input.topic,
         chapter_number: input.chapter_number || 1,
+        class_id: input.class_id,
         total_sessions: input.sessions,
         session_duration: input.session_duration || 45,
         session_details: cleanedSessionDetails,
