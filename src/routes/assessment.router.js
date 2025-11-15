@@ -20,6 +20,9 @@ router.get('/teacher/:teacherId', validateToken, assessmentController.getTeacher
 router.patch('/:id/status', validateToken, assessmentController.updateStatus);
 
 // Student-facing routes
+// Get student performance data
+router.get('/student/performance', validateToken, assessmentController.getStudentPerformance);
+
 // Get active assessments by class
 router.get('/student/class/:classId', validateToken, assessmentController.getActiveAssessmentsByClass);
 

@@ -2,6 +2,7 @@ const AssessmentGeneratorAgent = require('../agents/assessmentGeneratorAgent');
 const Assessment = require('../models/Assessment.model');
 const AssessmentQuestions = require('../models/AssessmentQuestions.model');
 const Submission = require('../models/Submission.model');
+const Student = require('../models/Student.model');
 
 const assessmentController = {
   /**
@@ -332,6 +333,125 @@ const assessmentController = {
 
     } catch (error) {
       console.error('Error in getActiveAssessmentsByGrade controller:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  },
+
+  async getStudentPerformance(req, res) {
+    try {
+      // Get student ID from authenticated user
+      const studentId = req.user.id;
+      const student = await Student.findById(studentId).select('class grade');
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Student not found'
+        });
+      }
+
+      const studentClassId = student.class?.class_id;
+      const studentGradeId = student.grade?.grade_id;
+
+      if (!studentClassId || !studentGradeId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Student class or grade information not found'
+        });
+      }
+
+      // Get all assessments for student's class with specific statuses
+      const assessments = await Assessment.find({
+        class_id: studentClassId,
+        grade_id: studentGradeId,
+        status: { $in: ['Active', 'Closed', 'Graded'] },
+        isActive: true
+      }).lean();
+
+      // Get all submissions for this student
+      const submissions = await Submission.find({
+        student_id: studentId,
+        status: 'Graded'
+      })
+        .populate('assessment_id', 'subject_id total_marks')
+        .populate({
+          path: 'assessment_id',
+          populate: {
+            path: 'subject_id',
+            select: 'subject_name'
+          }
+        })
+        .lean();
+  
+      // Calculate overall performance
+      const totalAssessments = assessments.length;
+      const totalSubmissions = submissions.length
+      const totalMarksObtained = submissions.reduce((sum, sub) => sum + (sub.total_marks_obtained || 0), 0);
+      const totalMarks = submissions.reduce((sum, sub) => sum + (sub.assessment_id?.total_marks || 0), 0);
+      const averagePercentage = totalAssessments > 0
+        ? (totalMarksObtained / totalMarks) * 100
+        : 0;
+
+
+      
+
+      // Calculate subject-wise performance
+      const subjectWiseMap = {};
+      submissions.forEach(submission => {
+        const subjectName = submission.assessment_id?.subject_id?.subject_name || 'Unknown';
+
+        if (!subjectWiseMap[subjectName]) {
+          subjectWiseMap[subjectName] = {
+            total_assessments: 0,
+            total_marks: 0,
+            marks_obtained: 0,
+            percentage: 0
+          };
+        }
+
+        subjectWiseMap[subjectName].total_assessments += 1;
+        subjectWiseMap[subjectName].total_marks += submission.assessment_id?.total_marks || 0;
+        subjectWiseMap[subjectName].marks_obtained += submission.total_marks_obtained || 0;
+      });
+
+      // Calculate percentage for each subject and convert to array
+      const subjectWise = Object.keys(subjectWiseMap).map(subjectName => {
+        const data = subjectWiseMap[subjectName];
+        const percentage = data.total_marks > 0
+          ? (data.marks_obtained / data.total_marks) * 100
+          : 0;
+        
+        return {
+          subject_name: subjectName,
+          total_assessments: data.total_assessments,
+          total_marks: data.total_marks,
+          marks_obtained: data.marks_obtained,
+          percentage: Math.round(percentage * 10) / 10
+        };
+      });
+
+      const performanceData = {
+        overall: {
+          total_assessments: totalAssessments,
+          total_submissions: totalSubmissions,
+          average_percentage: Math.round(averagePercentage * 10) / 10,
+          total_marks_obtained: totalMarksObtained,
+          total_marks: totalMarks
+        },
+        subject_wise: subjectWise,
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: performanceData
+      });
+
+    } catch (error) {
+      console.error('Error in getStudentPerformance controller:', error);
       return res.status(500).json({
         success: false,
         message: 'Internal server error',
