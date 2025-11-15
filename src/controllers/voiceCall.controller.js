@@ -96,9 +96,9 @@ exports.handleRetellWebhook = async (req, res) => {
   try {
     const { call_id, transcript, metadata } = req.body;
 
-    // Get call details
-    const call = await retellService.getCall(metadata.call_id);
+    const call = await retellService.getCall(metadata?.call_id || call_id);
     if (!call) {
+      console.error("❌ WEBHOOK - Call not found:", metadata?.call_id || call_id);
       return res.status(404).json({ error: "Call not found" });
     }
 
@@ -124,7 +124,6 @@ exports.handleRetellWebhook = async (req, res) => {
 
       const agent = new StudentAssistantAgent();
       
-      console.log("🎙️ WEBHOOK - Student Query:", transcript);
       
       const result = await agent.chat(
         transcript,
@@ -133,8 +132,6 @@ exports.handleRetellWebhook = async (req, res) => {
         call.metadata.selected_chapters || []
       );
 
-      console.log("🤖 WEBHOOK - Agent Response:", result.response?.substring(0, 200));
-      console.log("🔧 WEBHOOK - Tools Used:", result.tools_used?.map(t => t.name).join(", ") || "None");
 
       response = result.response;
     } else if (call.user_type === "parent") {
@@ -166,13 +163,15 @@ exports.handleRetellWebhook = async (req, res) => {
       response = result.response;
     }
 
+
     // Return response to Retell
     return res.json({
       response,
       end_call: false,
     });
   } catch (error) {
-    console.error("Error handling Retell webhook:", error);
+    console.error("❌ WEBHOOK ERROR:", error);
+    console.error("❌ WEBHOOK ERROR - Stack:", error.stack);
     return res.status(500).json({
       response: "I'm having trouble right now. Please try again.",
       end_call: false,
