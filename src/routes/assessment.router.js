@@ -24,8 +24,8 @@ router.patch('/:id/status', validateToken, assessmentController.updateStatus);
 router.get('/student/performance', validateToken, assessmentController.getStudentPerformance);
 
 // Parent-facing routes
-// Get child performance data (requires child_id query parameter)
-router.get('/child/performance', validateToken, assessmentController.getChildPerformance);
+// Get child performance data (child_id as path parameter)
+router.get('/child/performance/:child_id', validateToken, assessmentController.getChildPerformance);
 
 // Get active assessments by class
 router.get('/student/class/:classId', validateToken, assessmentController.getActiveAssessmentsByClass);

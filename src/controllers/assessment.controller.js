@@ -475,25 +475,21 @@ const assessmentController = {
 
   /**
    * Get child performance data for parents
-   * GET /api/assessment/child/performance
+   * GET /api/assessment/child/performance/:child_id
    */
   async getChildPerformance(req, res) {
     try {
-      const parentsId = req.user?.id;
-      const childInfo = await Parents.findById(parentsId).select('child_info');
-      const childId = childInfo?.child_info?.[0]?.student_id
-      if (!childInfo) {
-        return res.status(404).json({
-          success: false,
-          message: 'Child not found'
-        });
-      }
-      if (!childId) {
+      // Get child_id from path parameter
+      const { child_id } = req.params;
+
+      if (!child_id) {
         return res.status(400).json({
           success: false,
-          message: 'childId is required'
+          message: 'child_id is required'
         });
       }
+
+      const childId = child_id;
       const student = await Student.findById(childId).select('class grade');
       if (!student) {
         return res.status(404).json({
