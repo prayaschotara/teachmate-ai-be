@@ -344,7 +344,7 @@ const assessmentController = {
   async getStudentPerformance(req, res) {
     try {
       // Get student ID from authenticated user
-      const studentId = req.user.id;
+      const studentId = req.user?.id;
       const student = await Student.findById(studentId).select('class grade');
 
       if (!student) {

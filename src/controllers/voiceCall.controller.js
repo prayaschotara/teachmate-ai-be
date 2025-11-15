@@ -3,7 +3,7 @@ const StudentAssistantAgent = require("../agents/studentAssistantAgent");
 const ParentAssistantAgent = require("../agents/parentAssistantAgent");
 const Student = require("../models/Student.model");
 const Parents = require("../models/Parents.model");
-const { successResponse, errorResponse } = require("../helpers/http-responses");
+const responseHelper = require("../helpers/http-responses");
 
 /**
  * Start voice call for student
@@ -15,7 +15,7 @@ exports.startStudentVoiceCall = async (req, res) => {
 
     const student = await Student.findById(student_id);
     if (!student) {
-      return errorResponse(res, "Student not found", 404);
+      return responseHelper.notFound(res, "Student not found");
     }
 
     const metadata = {
@@ -27,7 +27,7 @@ exports.startStudentVoiceCall = async (req, res) => {
 
     const callData = await retellService.createStudentCall(student_id, metadata);
 
-    return successResponse(res, {
+    return responseHelper.created(res, "Voice call started successfully", {
       call_id: callData.call_id,
       access_token: callData.access_token,
       student: {
@@ -38,10 +38,10 @@ exports.startStudentVoiceCall = async (req, res) => {
         subject: subject || "All subjects",
         chapters: selected_chapters?.length > 0 ? selected_chapters : "All chapters",
       },
-    }, 201);
+    });
   } catch (error) {
     console.error("Error starting student voice call:", error);
-    return errorResponse(res, "Failed to start voice call", 500);
+    return responseHelper.serverError(res, "Failed to start voice call");
   }
 };
 
@@ -55,12 +55,12 @@ exports.startParentVoiceCall = async (req, res) => {
 
     const parent = await Parents.findById(parent_id);
     if (!parent) {
-      return errorResponse(res, "Parent not found", 404);
+      return responseHelper.notFound(res, "Parent not found");
     }
 
     const student = await Student.findById(student_id);
     if (!student) {
-      return errorResponse(res, "Student not found", 404);
+      return responseHelper.notFound(res, "Student not found");
     }
 
     const metadata = {
@@ -71,7 +71,7 @@ exports.startParentVoiceCall = async (req, res) => {
 
     const callData = await retellService.createParentCall(parent_id, student_id, metadata);
 
-    return successResponse(res, {
+    return responseHelper.created(res, "Voice call started successfully", {
       call_id: callData.call_id,
       access_token: callData.access_token,
       parent: {
@@ -81,10 +81,10 @@ exports.startParentVoiceCall = async (req, res) => {
         name: `${student.first_name} ${student.last_name}`,
         grade: student.grade.grade_name,
       },
-    }, 201);
+    });
   } catch (error) {
     console.error("Error starting parent voice call:", error);
-    return errorResponse(res, "Failed to start voice call", 500);
+    return responseHelper.serverError(res, "Failed to start voice call");
   }
 };
 
@@ -189,7 +189,7 @@ exports.getCallHistory = async (req, res) => {
 
     const calls = await retellService.getStudentCallHistory(student_id);
 
-    return successResponse(res, {
+    return responseHelper.success(res, "Call history retrieved successfully", {
       calls: calls.map((call) => ({
         call_id: call.call_id,
         user_type: call.user_type,
@@ -202,7 +202,7 @@ exports.getCallHistory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getting call history:", error);
-    return errorResponse(res, "Failed to get call history", 500);
+    return responseHelper.serverError(res, "Failed to get call history");
   }
 };
 
@@ -217,11 +217,11 @@ exports.endCall = async (req, res) => {
       ended_at: new Date(),
     });
 
-    return successResponse(res, {
+    return responseHelper.success(res, "Call ended successfully", {
       message: "Call ended successfully",
     });
   } catch (error) {
     console.error("Error ending call:", error);
-    return errorResponse(res, "Failed to end call", 500);
+    return responseHelper.serverError(res, "Failed to end call");
   }
 };
