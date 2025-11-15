@@ -41,7 +41,9 @@ mongoose
     process.exit(0)
   });
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: ["*"]
+}));
 app.use(morgan("dev"));
 const port = process.env.PORT || 3000;
 
