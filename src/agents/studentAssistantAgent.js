@@ -120,9 +120,25 @@ class StudentAssistantAgent {
     try {
       const queryEmbedding = await this.generateEmbedding(query);
 
-      const filter = { grade: grade.toString() };
+      // Normalize subject name to match Pinecone data
+      const normalizeSubject = (subj) => {
+        if (!subj) return null;
+        const lower = subj.toLowerCase();
+        // Map common variations
+        if (lower.includes('math')) return 'Mathematics';
+        if (lower.includes('science')) return 'Science';
+        if (lower.includes('english')) return 'english'; // lowercase in your data
+        return subj; // return as-is for others
+      };
+
+      // Match your Pinecone metadata structure
+      const filter = { 
+        grade: typeof grade === 'number' ? grade : parseInt(grade) || 8,
+      };
+
+      // Add subject filter if provided
       if (subject) {
-        filter.subject = subject;
+        filter.subject = normalizeSubject(subject);
       }
       
       // Filter by specific chapters if provided
@@ -130,12 +146,19 @@ class StudentAssistantAgent {
         filter.chapter = { $in: chapters.map(ch => ch.toString()) };
       }
 
+      console.log("🔍 Pinecone Query Filter:", JSON.stringify(filter));
+
       const results = await this.index.query({
         vector: queryEmbedding,
-        topK: 3,
+        topK: 5,
         filter,
         includeMetadata: true,
       });
+
+      console.log("📊 Pinecone Results:", results.matches?.length || 0);
+      if (results.matches && results.matches.length > 0) {
+        console.log("📚 First result:", results.matches[0].metadata?.topic);
+      }
 
       const matches = results.matches || [];
       return matches.map((match) => ({
