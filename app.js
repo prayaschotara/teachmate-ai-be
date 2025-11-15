@@ -22,6 +22,7 @@ const lessonPlanRouter = require("./src/routes/lessonPlan.router");
 const assessmentRouter = require("./src/routes/assessment.router");
 const contentCurationRouter = require("./src/routes/contentCuration.router");
 const submissionRouter = require("./src/routes/submission.router");
+const chatRouter = require("./src/routes/chat.router");
 
 const app = express();
 mongoose
@@ -54,6 +55,7 @@ app.use("/api/lesson-plan", lessonPlanRouter);
 app.use("/api/assessment", assessmentRouter);
 app.use("/api/content", contentCurationRouter);
 app.use("/api/submission", submissionRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/test", testRouter);
 app.use(errorHandler);
 

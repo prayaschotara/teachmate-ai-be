@@ -15,7 +15,11 @@
     "test-agent2": "node src/scripts/test-agent2.js",
     "test-agent3-session": "node src/scripts/test-agent3-session.js",
     "test-agent3-chapter": "node src/scripts/test-agent3-chapter.js",
-    "test-submission": "node src/scripts/test-submission.js"
+    "test-submission": "node src/scripts/test-submission.js",
+    "test-agent4": "node src/scripts/test-agent4.js",
+    "test-agent4-db": "node src/scripts/test-agent4-with-db.js",
+    "test-chatbots": "node src/scripts/test-both-chatbots.js",
+    "index-content": "node src/scripts/index-content.js"
   },
   "author": "",
   "license": "ISC",
