@@ -14,10 +14,61 @@ class StudentAssistantAgent {
     this.pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
     this.index = this.pinecone.index(process.env.PINECONE_INDEX_NAME);
     this.chatModel = "anthropic/claude-3.5-sonnet";
-    
+
     // Define tools for the agent
     this.tools = this.defineTools();
   }
+
+  extractAndMapChapters(queryText, subjectName) {
+    const chapters = [];
+    const lowerQuery = queryText.toLowerCase();
+
+    // Match patterns like "chapter 1", "ch 2", "first chapter", "chapter one"
+    const numberWords = {
+      'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+      'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+      'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+      'eleven': '11', 'twelve': '12'
+    };
+
+    // Replace word numbers with digits
+    let processedQuery = lowerQuery;
+    Object.keys(numberWords).forEach(word => {
+      processedQuery = processedQuery.replace(new RegExp(`\\b${word}\\b`, 'g'), numberWords[word]);
+    });
+
+    // Extract chapter numbers: "chapter 1", "ch 2", "chapter 101"
+    const chapterMatches = processedQuery.match(/(?:chapter|ch\.?)\s*(\d+)/g);
+    if (chapterMatches) {
+      chapterMatches.forEach(match => {
+        const num = match.match(/\d+/)[0];
+
+        // Map chapter numbers based on subject
+        // English: 1, 2, 3... → "1", "2", "3"
+        // Math/Science: 1, 2, 3... → "101", "102", "103"
+        const subjectLower = (subjectName || '').toLowerCase();
+
+        if (subjectLower.includes('english')) {
+          // English uses simple numbering
+          chapters.push(num);
+        } else if (subjectLower.includes('math') || subjectLower.includes('science')) {
+          // Math/Science use 101, 102, 103...
+          // If user says "chapter 1", map to "101"
+          // If user says "chapter 101", keep as "101"
+          if (parseInt(num) < 100) {
+            chapters.push(`${100 + parseInt(num)}`);
+          } else {
+            chapters.push(num);
+          }
+        } else {
+          // Default: keep as-is
+          chapters.push(num);
+        }
+      });
+    }
+
+    return chapters;
+  };
 
   /**
    * Define tools available to the agent
@@ -38,8 +89,12 @@ class StudentAssistantAgent {
               },
               subject: {
                 type: "string",
-                description: "The subject to search in (e.g., Science, Math, English)",
+                description: "The subject to search in (e.g., Science, Math, english)",
               },
+              chapter: {
+                type: "string",
+                description: "The chapter to search in the subject"
+              }
             },
             required: ["query"],
           },
@@ -118,6 +173,7 @@ class StudentAssistantAgent {
    */
   async searchKnowledgeBase(query, subject = null, grade = 8, chapters = []) {
     try {
+      console.log("------", query, subject)
       const queryEmbedding = await this.generateEmbedding(query);
 
       // Normalize subject name to match Pinecone data
@@ -132,7 +188,7 @@ class StudentAssistantAgent {
       };
 
       // Match your Pinecone metadata structure
-      const filter = { 
+      const filter = {
         grade: typeof grade === 'number' ? grade : parseInt(grade) || 8,
       };
 
@@ -140,11 +196,10 @@ class StudentAssistantAgent {
       if (subject) {
         filter.subject = normalizeSubject(subject);
       }
-      
+
       // Filter by specific chapters if provided
-      if (chapters && chapters.length > 0) {
-        filter.chapter = { $in: chapters.map(ch => ch.toString()) };
-      }
+      // Don't filter by chapter in Pinecone - let semantic search handle it
+      // The chapter context is already in the query and system prompt
 
       console.log("🔍 Pinecone Query Filter:", JSON.stringify(filter));
 
@@ -154,6 +209,7 @@ class StudentAssistantAgent {
         filter,
         includeMetadata: true,
       });
+      console.log("results", results)
 
       console.log("📊 Pinecone Results:", results.matches?.length || 0);
       if (results.matches && results.matches.length > 0) {
@@ -179,7 +235,7 @@ class StudentAssistantAgent {
   async getStudentProgress(studentId, subject = null) {
     try {
       const query = { student_id: studentId, status: "Graded" };
-      
+
       const submissions = await Submission.find(query)
         .populate("assessment_id")
         .sort({ createdAt: -1 })
@@ -234,7 +290,7 @@ class StudentAssistantAgent {
     try {
       const Student = require("../models/Student.model");
       const student = await Student.findById(studentId);
-      
+
       if (!student) {
         return { message: "Student not found" };
       }
@@ -269,16 +325,83 @@ class StudentAssistantAgent {
   }
 
   /**
+   * Extract and map chapter numbers from query text based on subject
+   */
+  extractAndMapChapters(queryText, subjectName) {
+    const chapters = [];
+    const lowerQuery = queryText.toLowerCase();
+
+    // Match patterns like "chapter 1", "ch 2", "first chapter", "chapter one"
+    const numberWords = {
+      'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+      'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+      'six': '6', 'seven': '7', 'eight': '8', 'nine': '9', 'ten': '10',
+      'eleven': '11', 'twelve': '12'
+    };
+
+    // Replace word numbers with digits
+    let processedQuery = lowerQuery;
+    Object.keys(numberWords).forEach(word => {
+      processedQuery = processedQuery.replace(new RegExp(`\\b${word}\\b`, 'g'), numberWords[word]);
+    });
+
+    // Extract chapter numbers: "chapter 1", "ch 2", "chapter 101"
+    const chapterMatches = processedQuery.match(/(?:chapter|ch\.?)\s*(\d+)/g);
+    if (chapterMatches) {
+      chapterMatches.forEach(match => {
+        const num = match.match(/\d+/)[0];
+
+        // Map chapter numbers based on subject
+        // English: 1, 2, 3... → "1", "2", "3"
+        // Math/Science: 1, 2, 3... → "101", "102", "103"
+        const subjectLower = (subjectName || '').toLowerCase();
+
+        if (subjectLower.includes('english')) {
+          // English uses simple numbering
+          chapters.push(num);
+        } else if (subjectLower.includes('math') || subjectLower.includes('science')) {
+          // Math/Science use 101, 102, 103...
+          // If user says "chapter 1", map to "101"
+          // If user says "chapter 101", keep as "101"
+          if (parseInt(num) < 100) {
+            chapters.push(`${100 + parseInt(num)}`);
+          } else {
+            chapters.push(num);
+          }
+        } else {
+          // Default: keep as-is
+          chapters.push(num);
+        }
+      });
+    }
+
+    return chapters;
+  }
+
+  /**
    * Execute a tool call
    */
   async executeTool(toolName, toolArgs, context = {}) {
     switch (toolName) {
       case "search_knowledge_base":
+        // Priority: 1. context.selected_chapters (from frontend), 2. extract from query
+        let chaptersToUse = [];
+        if (context.selected_chapters && context.selected_chapters.length > 0) {
+          chaptersToUse = context.selected_chapters;
+          console.log(`📖 Using chapters from context: ${chaptersToUse.join(", ")}`);
+        } else {
+          const detectedChapters = this.extractAndMapChapters(toolArgs.query, context.subject || toolArgs.subject);
+          if (detectedChapters.length > 0) {
+            chaptersToUse = detectedChapters;
+            console.log(`📖 Auto-detected chapters from query: ${chaptersToUse.join(", ")}`);
+          }
+        }
+
         return await this.searchKnowledgeBase(
           toolArgs.query,
           context.subject || toolArgs.subject,
           context.grade || 8,
-          context.selected_chapters || []
+          chaptersToUse
         );
       case "get_student_progress":
         return await this.getStudentProgress(
@@ -299,8 +422,8 @@ class StudentAssistantAgent {
   /**
    * Build system prompt with student context
    */
-  buildSystemPrompt(studentInfo) {
-    return `You are a helpful, patient, and encouraging AI tutor assistant for ${studentInfo.first_name}, a ${studentInfo.grade_name} student.
+  buildSystemPrompt(studentInfo, selectedChapters = []) {
+    let prompt = `You are a helpful, patient, and encouraging AI tutor assistant for ${studentInfo.first_name}, a ${studentInfo.grade_name} student.
 
 Your role:
 - Answer questions about lessons, homework, and concepts
@@ -321,6 +444,17 @@ Student Context:
 - Name: ${studentInfo.first_name} ${studentInfo.last_name}
 - Grade: ${studentInfo.grade_name}
 - Class: ${studentInfo.class_name}`;
+
+    if (studentInfo.subject) {
+      prompt += `\n- Current Subject: ${studentInfo.subject}`;
+    }
+
+    if (selectedChapters && selectedChapters.length > 0) {
+      prompt += `\n- Focused Chapters: ${selectedChapters}`;
+      prompt += `\n\nIMPORTANT: The student is currently studying chapters ${selectedChapters}. Prioritize content from these chapters when answering questions and searching the knowledge base.`;
+    }
+
+    return prompt;
   }
 
 
@@ -373,13 +507,8 @@ Student Context:
    */
   async chat(query, studentInfo, conversationHistory = [], selectedChapters = []) {
     try {
-      let systemPrompt = this.buildSystemPrompt(studentInfo);
-      
-      // Add chapter context to system prompt
-      if (selectedChapters && selectedChapters.length > 0) {
-        systemPrompt += `\n\nThe student is currently focusing on chapters: ${selectedChapters.join(", ")}. Prioritize content from these chapters when answering questions.`;
-      }
-      
+      const systemPrompt = this.buildSystemPrompt(studentInfo, selectedChapters);
+
       const messages = [
         { role: "system", content: systemPrompt },
         ...conversationHistory,
@@ -408,6 +537,7 @@ Student Context:
 
           for (const toolCall of assistantMessage.tool_calls) {
             const toolName = toolCall.function.name;
+            console.log("toooool", toolCall.function.arguments)
             const toolArgs = JSON.parse(toolCall.function.arguments);
 
             if (!toolArgs.student_id && studentInfo.student_id) {
@@ -458,7 +588,7 @@ Student Context:
   extractSubject(query) {
     const lowerQuery = query.toLowerCase();
     const subjects = ["math", "science", "english", "history", "geography"];
-    
+
     for (const subject of subjects) {
       if (lowerQuery.includes(subject)) {
         return subject.charAt(0).toUpperCase() + subject.slice(1);

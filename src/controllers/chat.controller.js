@@ -4,7 +4,7 @@ const ChatConversation = require("../models/ChatConversation.model");
 const Student = require("../models/Student.model");
 const Parents = require("../models/Parents.model");
 const { v4: uuidv4 } = require("uuid");
-const { successResponse, errorResponse } = require("../helpers/http-responses");
+const { success, serverError, notFound, badRequest } = require("../helpers/http-responses");
 
 /**
  * Start a new student chat session
@@ -16,7 +16,7 @@ exports.startStudentChat = async (req, res) => {
 
     const student = await Student.findById(student_id);
     if (!student) {
-      return errorResponse(res, "Student not found", 404);
+      return notFound(res, "Student not found", 404);
     }
 
     const session_id = uuidv4();
@@ -31,8 +31,9 @@ exports.startStudentChat = async (req, res) => {
 
     await conversation.save();
 
-    return successResponse(
+    return success(
       res,
+      "success",
       {
         session_id,
         message: "Student chat session started",
@@ -43,16 +44,16 @@ exports.startStudentChat = async (req, res) => {
         },
         context: {
           subject: subject || "All subjects",
-          chapters: selected_chapters && selected_chapters.length > 0 
-            ? selected_chapters 
+          chapters: selected_chapters && selected_chapters.length > 0
+            ? selected_chapters
             : "All chapters",
         },
       },
-      201
+
     );
   } catch (error) {
     console.error("Error starting student chat:", error);
-    return errorResponse(res, "Failed to start chat session", 500);
+    return serverError(res, "Failed to start chat session", 500);
   }
 };
 
@@ -66,12 +67,12 @@ exports.startParentChat = async (req, res) => {
 
     const parent = await Parents.findById(parent_id);
     if (!parent) {
-      return errorResponse(res, "Parent not found", 404);
+      return notFound(res, "Parent not found", 404);
     }
 
     const student = await Student.findById(student_id);
     if (!student) {
-      return errorResponse(res, "Student not found", 404);
+      return notFound(res, "Student not found", 404);
     }
 
     const session_id = uuidv4();
@@ -86,7 +87,7 @@ exports.startParentChat = async (req, res) => {
 
     await conversation.save();
 
-    return successResponse(
+    return success(
       res,
       {
         session_id,
@@ -107,7 +108,7 @@ exports.startParentChat = async (req, res) => {
     );
   } catch (error) {
     console.error("Error starting parent chat:", error);
-    return errorResponse(res, "Failed to start chat session", 500);
+    return serverError(res, "Failed to start chat session", 500);
   }
 };
 
@@ -116,20 +117,20 @@ exports.startParentChat = async (req, res) => {
  */
 exports.sendMessage = async (req, res) => {
   try {
-    const { session_id, message } = req.body;
+    const { session_id, message, subName, chapter } = req.body;
 
     if (!message || message.trim() === "") {
-      return errorResponse(res, "Message cannot be empty", 400);
+      return badRequest(res, "Message cannot be empty", 400);
     }
 
     const conversation = await ChatConversation.findOne({ session_id });
     if (!conversation) {
-      return errorResponse(res, "Chat session not found", 404);
+      return notFound(res, "Chat session not found", 404);
     }
 
     const student = await Student.findById(conversation.student_id);
     if (!student) {
-      return errorResponse(res, "Student not found", 404);
+      return notFound(res, "Student not found", 404);
     }
 
     const conversationHistory = conversation.messages.slice(-10).map((msg) => ({
@@ -140,6 +141,9 @@ exports.sendMessage = async (req, res) => {
     let result;
 
     if (conversation.user_type === "student") {
+      // Determine subject context
+      const currentSubject = subName || conversation.subject_context;
+
       // Student chat
       const studentInfo = {
         student_id: student._id.toString(),
@@ -149,15 +153,19 @@ exports.sendMessage = async (req, res) => {
         grade_id: student.grade.grade_id,
         class_name: student.class.class_name,
         class_id: student.class.class_id,
-        subject: conversation.subject_context,
+        subject: currentSubject,
       };
+
+      // Use chapter from request or fall back to conversation's selected chapters
+      // Chapter extraction from message will be handled by the agent
+      const chapters = chapter ? [chapter] : (conversation.selected_chapters || []);
 
       const agent = new StudentAssistantAgent();
       result = await agent.chat(
         message,
         studentInfo,
         conversationHistory,
-        conversation.selected_chapters
+        chapters
       );
 
       if (agent.shouldNotifyTeacher(message, studentInfo)) {
@@ -167,7 +175,7 @@ exports.sendMessage = async (req, res) => {
       // Parent chat
       const parent = await Parents.findById(conversation.parent_id);
       if (!parent) {
-        return errorResponse(res, "Parent not found", 404);
+        return notFound(res, "Parent not found", 404);
       }
 
       const parentInfo = {
@@ -189,9 +197,9 @@ exports.sendMessage = async (req, res) => {
       const agent = new ParentAssistantAgent();
       result = await agent.chat(message, parentInfo, childInfo, conversationHistory);
     }
-
+    console.log("resulkt", result)
     if (!result.success) {
-      return errorResponse(res, "Failed to generate response", 500);
+      return serverError(res, "Failed to generate response", 500);
     }
 
     conversation.messages.push({
@@ -209,14 +217,14 @@ exports.sendMessage = async (req, res) => {
     conversation.last_activity = new Date();
     await conversation.save();
 
-    return successResponse(res, {
+    return success(res, "success", {
       response: result.response,
       tools_used: result.tools_used || [],
       session_id,
     });
   } catch (error) {
     console.error("Error sending message:", error);
-    return errorResponse(res, "Failed to send message", 500);
+    return serverError(res, "Failed to send message", 500);
   }
 };
 
@@ -229,17 +237,17 @@ exports.getChatHistory = async (req, res) => {
 
     const conversation = await ChatConversation.findOne({ session_id });
     if (!conversation) {
-      return errorResponse(res, "Chat session not found", 404);
+      return notFound(res, "Chat session not found", 404);
     }
 
-    return successResponse(res, {
+    return success(res, "success", {
       session_id,
       messages: conversation.messages,
       status: conversation.status,
     });
   } catch (error) {
     console.error("Error getting chat history:", error);
-    return errorResponse(res, "Failed to get chat history", 500);
+    return serverError(res, "Failed to get chat history", 500);
   }
 };
 
@@ -261,15 +269,15 @@ exports.getStudentSessions = async (req, res) => {
       message_count: conv.messages.length,
       subject_context: conv.subject_context,
       needs_teacher_attention: conv.needs_teacher_attention,
-      last_message: conv.messages.length > 0 
-        ? conv.messages[conv.messages.length - 1].content.substring(0, 100) 
+      last_message: conv.messages.length > 0
+        ? conv.messages[conv.messages.length - 1].content.substring(0, 100)
         : null,
     }));
 
-    return successResponse(res, { sessions });
+    return success(res, { sessions });
   } catch (error) {
     console.error("Error getting student sessions:", error);
-    return errorResponse(res, "Failed to get student sessions", 500);
+    return serverError(res, "Failed to get student sessions", 500);
   }
 };
 
@@ -287,16 +295,16 @@ exports.closeChatSession = async (req, res) => {
     );
 
     if (!conversation) {
-      return errorResponse(res, "Chat session not found", 404);
+      return notFound(res, "Chat session not found", 404);
     }
 
-    return successResponse(res, {
+    return success(res, {
       message: "Chat session closed successfully",
       session_id,
     });
   } catch (error) {
     console.error("Error closing chat session:", error);
-    return errorResponse(res, "Failed to close chat session", 500);
+    return serverError(res, "Failed to close chat session", 500);
   }
 };
 
@@ -326,9 +334,9 @@ exports.getSessionsNeedingAttention = async (req, res) => {
       recent_messages: conv.messages.slice(-5),
     }));
 
-    return successResponse(res, { sessions });
+    return success(res, { sessions });
   } catch (error) {
     console.error("Error getting sessions needing attention:", error);
-    return errorResponse(res, "Failed to get sessions", 500);
+    return serverError(res, "Failed to get sessions", 500);
   }
 };
