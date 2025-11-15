@@ -443,7 +443,11 @@ Guidelines:
 Student Context:
 - Name: ${studentInfo.first_name} ${studentInfo.last_name}
 - Grade: ${studentInfo.grade_name}
-- Class: ${studentInfo.class_name}`;
+- Class: ${studentInfo.class_name}
+
+Response Rule: Response should always be in markdown format.
+
+`;
 
     if (studentInfo.subject) {
       prompt += `\n- Current Subject: ${studentInfo.subject}`;
