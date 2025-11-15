@@ -13,7 +13,7 @@ class ParentAssistantAgent {
   constructor() {
     this.pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY });
     this.index = this.pinecone.index(process.env.PINECONE_INDEX_NAME);
-    this.chatModel = "anthropic/claude-3.5-sonnet";
+    this.chatModel = "openai/gpt-5.1";
     this.tools = this.defineTools();
   }
 
@@ -131,11 +131,11 @@ class ParentAssistantAgent {
   buildSystemPrompt(parentInfo, childInfo) {
     return `You are a helpful AI assistant for ${parentInfo.name}, a parent of ${childInfo.first_name} ${childInfo.last_name} (${childInfo.grade_name}).
 
-    Child Information:
-    Student ID: ${childInfo.student_id}
-    Full name:  ${childInfo.first_name} ${childInfo.last_name},
-    Grade:  ${childInfo.grade_name},
-    Class: ${childInfo.class_name},
+Child Information:
+- Student ID: ${childInfo.student_id}
+- Full name: ${childInfo.first_name} ${childInfo.last_name}
+- Grade: ${childInfo.grade_name}
+- Class: ${childInfo.class_name}
 
 Your role:
 - Help parents understand their child's academic progress
@@ -200,6 +200,7 @@ Remember: You're helping parents support their child's education, not replacing 
       if (!submissions || submissions.length === 0) {
         return { message: "No assessment history found for this time period" };
       }
+      console.log('subs', submissions)
 
       let filteredSubmissions = submissions;
       if (subject) {
@@ -208,8 +209,10 @@ Remember: You're helping parents support their child's education, not replacing 
         );
       }
 
+      console.log("filtered", filteredSubmissions)
       // Calculate statistics
-      const scores = filteredSubmissions.map((s) => s.percentage);
+      const scores = filteredSubmissions.map((s) => s.total_marks_obtained);
+      console.log("scores", scores)
       const avgScore = (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1);
       const highestScore = Math.max(...scores);
       const lowestScore = Math.min(...scores);
@@ -224,6 +227,22 @@ Remember: You're helping parents support their child's education, not replacing 
           : recentAvg;
       const trend = recentAvg > olderAvg + 5 ? "improving" : recentAvg < olderAvg - 5 ? "declining" : "stable";
 
+
+      console.log("calc response", {
+        total_assessments: filteredSubmissions.length,
+        average_score: avgScore,
+        highest_score: highestScore,
+        lowest_score: lowestScore,
+        trend,
+        recent_assessments: filteredSubmissions.slice(0, 5).map((sub) => ({
+          title: sub.assessment_id?.title,
+          subject: sub.assessment_id?.subject_name,
+          score: sub.total_marks_obtained,
+          out_of_total_marks: sub.total_marks,
+          date: sub.submitted_at,
+          topics: sub.assessment_id?.topics || [],
+        })),
+      })
       return {
         total_assessments: filteredSubmissions.length,
         average_score: avgScore,
@@ -233,7 +252,8 @@ Remember: You're helping parents support their child's education, not replacing 
         recent_assessments: filteredSubmissions.slice(0, 5).map((sub) => ({
           title: sub.assessment_id?.title,
           subject: sub.assessment_id?.subject_name,
-          score: sub.percentage,
+          score: sub.total_marks_obtained,
+          out_of_total_marks: sub.total_marks,
           date: sub.submitted_at,
           topics: sub.assessment_id?.topics || [],
         })),
