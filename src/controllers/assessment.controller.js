@@ -434,6 +434,17 @@ const assessmentController = {
         };
       });
 
+      // Get recent performance (last 5 submissions)
+      const recentPerformance = submissions
+        .sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at))
+        .slice(0, 5)
+        .map(sub => ({
+          title: `Assessment ${sub.assessment_id?._id?.toString().slice(-6) || 'N/A'}`,
+          subject: sub.assessment_id?.subject_id?.subject_name || 'Unknown',
+          percentage: Math.round((sub.percentage || 0) * 10) / 10,
+          submitted_at: sub.submitted_at
+        }));
+
       const performanceData = {
         overall: {
           total_assessments: totalAssessments,
@@ -443,6 +454,7 @@ const assessmentController = {
           total_marks: totalMarks
         },
         subject_wise: subjectWise,
+        recent_performance: recentPerformance
       };
 
       return res.status(200).json({
