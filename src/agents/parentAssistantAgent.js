@@ -131,6 +131,12 @@ class ParentAssistantAgent {
   buildSystemPrompt(parentInfo, childInfo) {
     return `You are a helpful AI assistant for ${parentInfo.name}, a parent of ${childInfo.first_name} ${childInfo.last_name} (${childInfo.grade_name}).
 
+    Child Information:
+    Student ID: ${childInfo.student_id}
+    Full name:  ${childInfo.first_name} ${childInfo.last_name},
+    Grade:  ${childInfo.grade_name},
+    Class: ${childInfo.class_name},
+
 Your role:
 - Help parents understand their child's academic progress
 - Explain what topics their child is learning
@@ -465,6 +471,7 @@ Remember: You're helping parents support their child's education, not replacing 
           for (const toolCall of assistantMessage.tool_calls) {
             const toolName = toolCall.function.name;
             const toolArgs = JSON.parse(toolCall.function.arguments);
+
 
             if (!toolArgs.student_id && childInfo.student_id) {
               toolArgs.student_id = childInfo.student_id;

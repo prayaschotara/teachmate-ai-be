@@ -89,6 +89,7 @@ exports.startParentChat = async (req, res) => {
 
     return success(
       res,
+      "success",
       {
         session_id,
         message: "Parent chat session started",
@@ -103,8 +104,7 @@ exports.startParentChat = async (req, res) => {
         context: {
           subject: subject || "All subjects",
         },
-      },
-      201
+      }
     );
   } catch (error) {
     console.error("Error starting parent chat:", error);
@@ -189,6 +189,7 @@ exports.sendMessage = async (req, res) => {
         last_name: student.last_name,
         grade_name: student.grade.grade_name,
         grade_id: student.grade.grade_id,
+        class_name: student.class.class_name,
         class_id: student.class.class_id,
         grade: parseInt(student.grade.grade_name.replace(/\D/g, "")) || 8,
         subject: conversation.subject_context,
